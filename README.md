@@ -56,16 +56,4 @@ cargo run --release --example contention
 cargo bench
 ```
 
-## Design calls
 
-* Shards (16 default): less waiting, a bit more memory. One global lock would queue everyone.
-* Lazy refill: no timers per key. Cost scales with requests, not keys.
-* Explicit cleanup: you opt in with `spawn_cleanup`. No magic in `new`, safer for prod.
-
-## Interview Q&A
-
-**Why shards?** One Mutex for all keys means all threads wait. Hash to 16 locks means same key stays correct, different keys run free.
-
-**Why lazy refill?** `tokens += elapsed * rate` on each check. No background work per key.
-
-**What if a bucket is idle long?** Delete it. Next check makes a fresh full one, same result as if it refilled.
