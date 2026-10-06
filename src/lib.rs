@@ -4,8 +4,8 @@
 //! Each `check()` spends 1 token. Tokens come back over time (lazy refill).
 //! Forgotten cards are tossed by the sweeper after `idle_after`.
 
-use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -157,6 +157,15 @@ impl RateLimiter {
         removed
     }
 
+    /// How many buckets exist right now? Sum len() one shard at a time.
+    /// Used by /metrics. Rare call, so brief per-shard locks are fine.
+    pub fn bucket_count(&self) -> usize {
+        self.shards
+            .iter()
+            .map(|s| s.inner.lock().unwrap().len())
+            .sum()
+    }
+
     /// Background sweeper: every `interval`, drop idle buckets.
     /// Explicit (not auto in new()) for reliability — caller opts in with one line.
     /// Returns handle you can abort(). Locks never held across `.await`.
@@ -173,6 +182,39 @@ impl RateLimiter {
                 me.cleanup_once(idle_after);
             }
         })
+    }
+}
+
+/// Naive baseline: ONE lock for all keys.
+/// Same buckets, same refill, same Decision — only locking differs.
+/// Think: 1 giant locker everyone queues for. Used to prove sharding wins.
+pub struct NaiveLimiter {
+    config: Config,
+    inner: Mutex<HashMap<String, Bucket>>,
+}
+
+impl NaiveLimiter {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            inner: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// Same interface as RateLimiter::check — fair fight.
+    pub fn check(&self, key: &str) -> Decision {
+        let now = Instant::now();
+        let mut map = self.inner.lock().unwrap();
+        let bucket = map
+            .entry(key.to_string())
+            .or_insert_with(|| Bucket::new_full(self.config.capacity, now));
+        if bucket.try_take(now, &self.config) {
+            Decision::Allowed
+        } else {
+            Decision::Denied {
+                retry_after: bucket.retry_after(&self.config),
+            }
+        }
     }
 }
 
@@ -235,5 +277,17 @@ mod tests {
         std::thread::sleep(Duration::from_millis(5));
         assert_eq!(lim.cleanup_once(Duration::from_millis(1)), 2);
         assert_eq!(lim.check("alice"), Decision::Allowed);
+    }
+
+    #[test]
+    fn naive_matches_sharded_for_basic_flow() {
+        // Same rules: full at start, isolates keys, denies when empty.
+        let naive = NaiveLimiter::new(test_config(1, 1.0));
+        assert_eq!(naive.check("alice"), Decision::Allowed);
+        assert_eq!(naive.check("bob"), Decision::Allowed);
+        match naive.check("alice") {
+            Decision::Denied { .. } => {}
+            d => panic!("expected Denied, got {:?}", d),
+        }
     }
 }
