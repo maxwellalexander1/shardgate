@@ -1,5 +1,7 @@
 # ShardGate
 
+![CI](https://github.com/maxwellalexander1/shardgate/workflows/CI/badge.svg)
+
 A fast token bucket rate limiter in Rust. It uses sharded locks so many threads can check limits at once.
 
 Each key gets its own bucket. Buckets refill over time. Checks are cheap and honest about when to retry.
