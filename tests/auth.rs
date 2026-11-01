@@ -12,7 +12,11 @@ fn curl_status(port: u16, token: Option<&str>) -> (u16, String) {
     }
     // Rebuild with correct order: curl -s -o /dev/null -w CODE [-H Bearer] url
     let mut cmd = Command::new("curl");
-    cmd.arg("-s").arg("-o").arg("/dev/null").arg("-w").arg("%{http_code}");
+    cmd.arg("-s")
+        .arg("-o")
+        .arg("/dev/null")
+        .arg("-w")
+        .arg("%{http_code}");
     if let Some(t) = token {
         cmd.arg("-H").arg(format!("Authorization: Bearer {}", t));
     }
@@ -102,7 +106,11 @@ fn auth_required_and_isolated() {
     let (b2, _) = curl_body(port, "secret2");
     let (b3, _) = curl_body(port, "secret2");
     assert_eq!((b1, b2, b3), (200, 200, 429), "bob independent bucket");
-    assert!(body.contains("bob"), "response key is identity, got {}", body);
+    assert!(
+        body.contains("bob"),
+        "response key is identity, got {}",
+        body
+    );
 
     child.kill().ok();
 }

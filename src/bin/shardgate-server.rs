@@ -85,8 +85,7 @@ async fn auth_middleware(
     }
     if tokens.pairs.is_empty() {
         // Dev mode, no auth configured.
-        req.extensions_mut()
-            .insert(AuthIdentity("dev".to_string()));
+        req.extensions_mut().insert(AuthIdentity("dev".to_string()));
         return next.run(req).await;
     }
     let header_val = req
@@ -98,8 +97,7 @@ async fn auth_middleware(
     for (id, secret) in tokens.pairs.iter() {
         // Constant-time compare, same length pad to avoid early length leak.
         if presented.as_bytes().ct_eq(secret.as_bytes()).into() {
-            req.extensions_mut()
-                .insert(AuthIdentity(id.clone()));
+            req.extensions_mut().insert(AuthIdentity(id.clone()));
             return next.run(req).await;
         }
     }
@@ -138,10 +136,7 @@ async fn healthz() -> &'static str {
     "ok"
 }
 
-async fn check(
-    State(state): State<AppState>,
-    req: Request<axum::body::Body>,
-) -> Response {
+async fn check(State(state): State<AppState>, req: Request<axum::body::Body>) -> Response {
     let identity = req
         .extensions()
         .get::<AuthIdentity>()
@@ -210,9 +205,8 @@ async fn shutdown_signal() {
     };
     #[cfg(unix)]
     let terminate = async {
-        let mut sig =
-            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-                .expect("install SIGTERM");
+        let mut sig = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("install SIGTERM");
         sig.recv().await;
     };
     #[cfg(not(unix))]
@@ -257,10 +251,7 @@ async fn main() {
         .layer(
             CorsLayer::new()
                 .allow_origin(["http://localhost:5173".parse().unwrap()])
-                .allow_methods([
-                    axum::http::Method::GET,
-                    axum::http::Method::POST,
-                ])
+                .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
                 .allow_headers([header::CONTENT_TYPE]),
         )
         .with_state(state);
@@ -271,17 +262,19 @@ async fn main() {
     match (cert, key) {
         (Some(cert), Some(key)) => {
             eprintln!("TLS on: {}", addr);
-            let tls =
-                axum_server::tls_rustls::RustlsConfig::from_pem_file(cert, key)
-                    .await
-                    .unwrap();
+            let tls = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert, key)
+                .await
+                .unwrap();
             axum_server::bind_rustls(addr, tls)
                 .serve(app.into_make_service())
                 .await
                 .unwrap();
         }
         _ => {
-            eprintln!("TLS off (set SHARDGATE_TLS_CERT/KEY for TLS), listening on {}", addr);
+            eprintln!(
+                "TLS off (set SHARDGATE_TLS_CERT/KEY for TLS), listening on {}",
+                addr
+            );
             let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
             axum::serve(listener, app)
                 .with_graceful_shutdown(shutdown_signal())

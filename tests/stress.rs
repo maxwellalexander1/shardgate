@@ -1,7 +1,7 @@
 use shardgate::{Config, Decision, NaiveLimiter, RateLimiter};
 use std::sync::{
-    Arc, Barrier,
     atomic::{AtomicUsize, Ordering},
+    Arc, Barrier,
 };
 use std::time::Instant;
 
@@ -81,8 +81,7 @@ fn refill_bounded_window() {
 #[test]
 fn spread_keys_isolated() {
     let lim = Arc::new(RateLimiter::new(cfg(10, 0.0)));
-    let counts: Arc<Vec<AtomicUsize>> =
-        Arc::new((0..8).map(|_| AtomicUsize::new(0)).collect());
+    let counts: Arc<Vec<AtomicUsize>> = Arc::new((0..8).map(|_| AtomicUsize::new(0)).collect());
 
     std::thread::scope(|s| {
         for i in 0..8 {
