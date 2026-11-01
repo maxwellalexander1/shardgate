@@ -99,6 +99,13 @@ From `cargo run --example demo` (32 tokio tasks):
 * HOT: 10 Allowed, 22 Denied. Proves it denies when full.
 * SPREAD: 3200 Allowed, 0 Denied. Proves it runs parallel when spread.
 
+## Security model (T10)
+
+- TLS: `scripts/gen_certs.sh` self-signed cert, `SHARDGATE_TLS_CERT/KEY` to enable. `curl -k https://...` for test.
+- Auth: `SHARDGATE_TOKENS="alice:secret1,bob:secret2"`, Bearer tokens compared in constant time. 401 before limiter state. `/healthz` open, `/check` + `/metrics` require auth.
+- Buckets keyed by identity, not `?key=`. Two identities get independent buckets. Single static secret each, no rotation, no mTLS here.
+- Plain-HTTP README numbers stay labeled plain HTTP. TLS costs some throughput, not yet re-measured.
+
 ## Run it
 
 ```bash
