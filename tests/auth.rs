@@ -113,4 +113,5 @@ fn auth_required_and_isolated() {
     );
 
     child.kill().ok();
+    child.wait().ok();
 }

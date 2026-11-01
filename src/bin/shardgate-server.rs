@@ -72,7 +72,7 @@ fn tokens_from_env() -> Tokens {
 
 fn auth_required() -> bool {
     // No tokens configured means dev mode: auth off, ?key= fallback.
-    tokens_from_env().pairs.len() > 0
+    !tokens_from_env().pairs.is_empty()
 }
 
 async fn auth_middleware(
