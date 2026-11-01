@@ -1,2 +1,5 @@
 /target/
 Cargo.lock
+
+# local learning notes, only README.md stays tracked
+docs/notes/
