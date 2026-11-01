@@ -104,7 +104,7 @@ From `cargo run --example demo` (32 tokio tasks):
 - TLS: `scripts/gen_certs.sh` self-signed cert, `SHARDGATE_TLS_CERT/KEY` to enable. `curl -k https://...` for test.
 - Auth: `SHARDGATE_TOKENS="alice:secret1,bob:secret2"`, Bearer tokens compared in constant time. 401 before limiter state. `/healthz` open, `/check` + `/metrics` require auth.
 - Buckets keyed by identity, not `?key=`. Two identities get independent buckets. Single static secret each, no rotation, no mTLS here.
-- Plain-HTTP README numbers stay labeled plain HTTP. TLS costs some throughput, not yet re-measured.
+- Measured same-machine (CachyOS 16-core, wrk -t4 -c64 -d10s, huge cap): plain HTTP+auth 593k req/s p99 360us, TLS+auth 485k req/s p99 447us. TLS costs ~18% here. Old README 647k/638k numbers were pre-auth plain HTTP.
 
 ## Run it
 
